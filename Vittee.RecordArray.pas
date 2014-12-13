@@ -50,7 +50,7 @@ type
 
 implementation
 
-{ TRuntimeArray<T> }
+{ TRecordArray<T> }
 
 procedure TRecordArray<T>.Append(AOther: IRecordArray<T>);
 var
