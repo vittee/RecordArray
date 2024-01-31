@@ -1,13 +1,11 @@
-RecordArray
-===========
+# RecordArray
 
 Delphi Typed Pointer made easy.
 
-What is it?
------------
-It is just a small unit for creating an array of certain types at runtime, forget the `GetMem()` and `FreeMem()` and `try..finally` block.
+## What is it?
+It is just a small unit for creating an array of a certain type at runtime, forget the `GetMem()` and `FreeMem()` and `try..finally` block.
 
-Usually when an array is needed to be used as a pointer, we must allocate a memory block representing the array by using the `GetMem()` or `alloc()` by specifing element's size times number of elements, then call `FreeMem()` to free up the memory.
+Usually when an array is needed to be used as a pointer, we must allocate a memory block representing the array by using the `GetMem()` or `alloc()` by specifing element's size times the number of elements, then call `FreeMem()` to free up the memory.
 
 This will result in this boring code.
 
@@ -31,7 +29,7 @@ This unit helps eliminate that long code blocks into a single line.
 
 Why not use built-in dynamic array?
 -----------------------------------
-Yes, we can use dynamic array instead of manually allocating/deallocating the memory, but Delphi dynamic array has its own memory layout and byte alignment, which sometimes incompatible with most C API.
+Yes, we can use dynamic array instead of manually allocating/deallocating the memory, but Delphi's dynamic array has its own memory layout and byte alignment, which sometimes incompatible with most C API.
 
 Features
 --------
@@ -42,61 +40,71 @@ Features
 * Accessing element without doing pointer math.
 * Memory re-allocation, resizable array.
 
-How to use
-----------
+## How to use
 
-##### Creating
+### Creating
 ```pascal
 var
-  WordArray: IRecordArray<PWord>; // IRecordArray enable auto-release feature.
+  WordArray: IRecordArray<PWord>; // IRecordArray enables auto-release feature.
 begin
   WordArray := TRecordArray<PWord>.Create(10); // Create an array with 10 elements of Word
   // WordArray will be automatically deallocated when the function exit or no longer used.
 end;
 ```
 
-##### Getting array's length
+> The data is stored in memory as little-endian on x86-64 CPU 
+
+If the data is already allocated somewhere else, just put the pointer to that data and specify the length directly.
+```pascal
+var
+  WordArray: IRecordArray<PWord>;
+begin
+  WordArray := TRecordArray<PWord>.Create(PointerToWords, 10); // Create an array with 10 elements of Word using a pointer.
+end;
+```
+
+### Getting array's length
 ```pascal
   WordArray.Length
 ```
 
-##### Resizing
+### Resizing
 ```pascal
   WordArray.Length := WordArray.Length + 5; // Expand 5 elements
   WordArray.Length := WordArray.Length - 5; // Shrink the last 5 elements
 ```
 
-##### Getting an element
+### Getting an element
 ```pascal
 var
   I: Integer;
 begin
   for I := 0 to WordArray.Length - 1 do
-    DoSomethingWithWord(WordArray[I]);
+    DoSomethingWithWord(WordArray[I]^);
 end;
 ```
 
-##### Getting element's size
+### Getting element's size
 ```pascal
   WordArray.ElementSize
 ```
 
-##### Getting memory size
+### Getting memory size
 ```pascal
   WordArray.DataSize
 ```
 
-##### Getting memory block
+### Getting memory block
 ```pascal
   WordArray.Data
 ```
 
-##### Joining another array
+### Joining another array
 ```pascal
   WordArray.Append(AnotherWordArray)
 ```
 
-##### Using with record/struct
+### Using with record/struct
 
 A record type must has its pointer type declared. 
 
