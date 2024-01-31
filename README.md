@@ -5,7 +5,7 @@ Delphi Typed Pointer made easy.
 
 What is it?
 -----------
-It is a smally unit for creating an array of certain type at runtime, forget the `GetMem()` and `FreeMem()` and `try..finally` block.
+It is just a small unit for creating an array of certain types at runtime, forget the `GetMem()` and `FreeMem()` and `try..finally` block.
 
 Usually when an array is needed to be used as a pointer, we must allocate a memory block representing the array by using the `GetMem()` or `alloc()` by specifing element's size times number of elements, then call `FreeMem()` to free up the memory.
 
