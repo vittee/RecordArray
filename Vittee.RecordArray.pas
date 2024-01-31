@@ -46,7 +46,7 @@ type
   public
     class function GetElementSize: Integer;
 
-    constructor Create(ALength: Integer; AEndianness: TEndianness = TEndianness.Little); overload;
+    constructor Create(ALength: Integer); overload;
     constructor Create(APointer: T; ALength: Integer; AEndianness: TEndianness = TEndianness.Little); overload;
 
     destructor Destroy; override;
@@ -95,13 +95,13 @@ begin
   Result := FEndianness;
 end;
 
-constructor TRecordArray<T>.Create(ALength: Integer; AEndianness: TEndianness = TEndianness.Little);
+constructor TRecordArray<T>.Create(ALength: Integer);
 begin
   FElementSize := GetElementSize;
   FData := default(T);
   FOwned := True;
   FPtr := nil;
-  FEndianness := AEndianness;
+  FEndianness := TEndianness.Little;
   SetLength(ALength);
 end;
 
