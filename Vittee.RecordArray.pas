@@ -6,12 +6,16 @@ uses
   TypInfo, RTTI, SysUtils, Classes;
 
 type
+  {$SCOPEDENUMS ON}
+  TEndianness = (Little, Big);
+
   IRecordArray<T> = interface
     ['{8B71B837-E9F6-40B0-AFFB-882F436F287B}']
     procedure SetLength(const Value: Integer);
     function GetElement(Index: Integer): T;
     function GetData: T;
     function GetLength: Integer;
+    function GetEndianness: TEndianness;
     function ElementSize: Integer;
     function DataSize: Integer;
     procedure Wipe;
@@ -21,21 +25,30 @@ type
     property Length: Integer read GetLength write SetLength;
     property Data: T read GetData;
     property Elements[Index: Integer]: T read GetElement; default;
+    property Endianness: TEndianness read GetEndianness;
   end;
 
   TRecordArray<T> = class(TInterfacedObject, IRecordArray<T>)
   private
     FPtr: Pointer;
+    FOwned: Boolean;
     FData: T;
     FElementSize: Integer;
     FDataSize: Integer;
     FLength: Integer;
+    FEndianness: TEndianness;
+
     procedure SetLength(const Value: Integer);
     function GetElement(Index: Integer): T;
     function GetData: T;
     function GetLength: Integer;
+    function GetEndianness: TEndianness;
   public
-    constructor Create(ALength: Integer);
+    class function GetElementSize: Integer;
+
+    constructor Create(ALength: Integer; AEndianness: TEndianness = TEndianness.Little); overload;
+    constructor Create(APointer: T; ALength: Integer; AEndianness: TEndianness = TEndianness.Little); overload;
+
     destructor Destroy; override;
     //
     procedure Append(AOther: IRecordArray<T>);
@@ -46,27 +59,14 @@ type
     property Length: Integer read GetLength write SetLength;
     property Data: T read GetData;
     property Elements[Index: Integer]: T read GetElement; default;
+    property Endianness: TEndianness read GetEndianness;
   end;
 
 implementation
 
 { TRecordArray<T> }
 
-procedure TRecordArray<T>.Append(AOther: IRecordArray<T>);
-var
-  Other: TRecordArray<T>;
-  JointIndex: Integer;
-  Joint: T;
-begin
-  Other := AOther as TRecordArray<T>;
-  JointIndex := Length;
-  Length := Length + Other.Length;
-  Joint := Self[Length];
-  //
-  Move(Pointer(Other.FPtr)^, PPointer(@Joint)^, Other.FDataSize);
-end;
-
-constructor TRecordArray<T>.Create(ALength: Integer);
+class function TRecordArray<T>.GetElementSize: Integer;
 var
   Info: PTypeInfo;
   RttiType: TRttiPointerType;
@@ -85,12 +85,35 @@ begin
   with TRttiContext.Create do
   begin
     RttiType := TRttiPointerType(GetType(Info));
-    FElementSize := RttiType.ReferredType.TypeSize;
+    Exit(RttiType.ReferredType.TypeSize);
   end;
+end;
 
+
+function TRecordArray<T>.GetEndianness: TEndianness;
+begin
+  Result := FEndianness;
+end;
+
+constructor TRecordArray<T>.Create(ALength: Integer; AEndianness: TEndianness = TEndianness.Little);
+begin
+  FElementSize := GetElementSize;
   FData := default(T);
+  FOwned := True;
   FPtr := nil;
+  FEndianness := AEndianness;
   SetLength(ALength);
+end;
+
+constructor TRecordArray<T>.Create(APointer: T; ALength: Integer; AEndianness: TEndianness = TEndianness.Little);
+begin
+  FElementSize := GetElementSize;
+  FOwned := False;
+  FLength := ALength;
+  FDataSize := FElementSize * ALength;
+  FPtr := PPointer(@APointer)^;
+  FData := APointer;
+  FEndianness := AEndianness;
 end;
 
 function TRecordArray<T>.DataSize: Integer;
@@ -100,13 +123,28 @@ end;
 
 destructor TRecordArray<T>.Destroy;
 begin
-  if FPtr <> nil then
+  if FOwned and (FPtr <> nil) then
   begin
     FreeMem(FPtr);
   end;
 
   inherited;
 end;
+
+procedure TRecordArray<T>.Append(AOther: IRecordArray<T>);
+var
+  Other: TRecordArray<T>;
+  JointIndex: Integer;
+  Joint: T;
+begin
+  Other := AOther as TRecordArray<T>;
+  JointIndex := Length;
+  Length := Length + Other.Length;
+  Joint := Self[Length];
+  //
+  Move(Pointer(Other.FPtr)^, PPointer(@Joint)^, Other.FDataSize);
+end;
+
 
 function TRecordArray<T>.ElementSize: Integer;
 begin
@@ -130,6 +168,9 @@ end;
 
 procedure TRecordArray<T>.SetLength(const Value: Integer);
 begin
+  if not FOwned then
+    raise EInvalidOperation.Create('Could not set length, the memory was created by an external source');
+
   if FLength = Value then
     Exit;
 
@@ -153,3 +194,5 @@ begin
 end;
 
 end.
+
+
